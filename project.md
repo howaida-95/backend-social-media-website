@@ -810,3 +810,78 @@ pingup-backend/
 Don't create all of this today.
 
 We'll build it progressively.
+
+=============================================
+phase1 -  Backend Foundation
+
+Install → Initialize → Configure → Structure → Run → Verify
+src/
+├── config/ => Application configuration(db, env)
+├── modules/module name/controllers/ => Handles HTTP requests and responses.
+├── middleware/ => Code that runs between the request and controller.
+├── modules/module name/models/ => Database models.
+├── modules/module name/routes/ => API endpoints.
+├── modules/services/ => business logic 
+├── utils/ => Reusable helper functions.
+// Separate app.js and server.js
+├── app.js => Responsible for creating/configuring Express.
+└── server.js => Responsible for actually starting the server.
+
+Phase 2 — Database & Module Architecture
+Database → configuration → module boundaries → request flow
+
+
+
+how module communicate 
+React
+  │
+  │ POST /api/v1/posts
+  ▼
+Post Route
+  │
+  ▼
+Post Controller
+  │
+  ▼
+Post Service
+  │
+  ▼
+Post Model
+  │
+  ▼
+Database
+=======================================================================================
+Database
+=========
+1. Database Entity Planning 
+User
+Post
+Story
+Comment
+Like
+Connection
+Message
+Notification
+Conversation
+RefreshToken / Session
+
+2. Relationships
+- user & posts 
+one user can create many posts ==> user has many posts (users 1 -> N posts)
+- user & stories 
+one user can create multiple stories 
+- user & messages 
+Messages involve users on both sides(sender & receivers)
+- users & connections 
+..etc
+
+3. database setup 
+env
+ ↓
+config/env.ts
+ ↓
+config/database.ts
+ ↓
+server.ts
+ ↓
+MySQL
