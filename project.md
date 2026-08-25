@@ -885,3 +885,40 @@ config/database.ts
 server.ts
  ↓
 MySQL
+
+Core Data Model
+================
+## Users
+
+Profile info (name, username, bio, avatar, cover photo, location)
+Badges/tags (Dreamer, Learner, Doer)
+Follower/following relationships
+Connection status (pending, accepted)
+
+## Posts & Content
+
+Text posts, stories (with color/background support)
+Images/videos attached to posts
+Timestamps, likes, comments, shares
+Hashtags and mentions
+
+## Messaging
+
+Direct messages between users
+Conversation threads
+Message timestamps, read status
+
+## Social Graph
+
+Followers/Following lists
+Pending connection requests
+Connection status (Followers, Following, Pending, Connections)
+
+
+1. Requirements gathering
+2. Database design (ERD) =>  ER Diagram (Database Design) + Define Database Schema
+3. API documentation (Swagger/OpenAPI)
+4. Backend implementation
+5. Frontend implementation
+6. Testing
+7. Deployment

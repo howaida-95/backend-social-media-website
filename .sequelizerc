@@ -1,0 +1,9 @@
+const path = require('path');
+
+const rootDir = __dirname;
+
+module.exports = {
+  config: path.join(rootDir, 'src/database/config/database.cjs'),
+  'migrations-path': path.join(rootDir, 'src/database/migrations'),
+  'seeders-path': path.join(rootDir, 'src/database/seeders'),
+};
