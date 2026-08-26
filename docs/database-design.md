@@ -10,11 +10,48 @@ https://chatgpt.com/g/g-p-6a792f8cb0088191b65d15e0dcc54d46/c/6a8cab1d-f64c-83ea-
 - Posts (1) ↔ (M) Likes (unique constraint: user_post)
 => User 1 ──────── * Like * ──────── 1 Post
 => like represents  Which user liked which post?
-- User
+- User (connections)
  │
  ├── following → Users (User who follows)
  │
  └── followers → Users (User being followed)
+
+- user & story 
+User
+ │
+ ├── stories ────────────> Story
+ │
+ └── viewedStories <───── Story
+                              │
+                              └── viewers ──> User
+A junction table is a table used to represent a many-to-many relationship between two other tables.
+User ←──────→ Story
+For example:
+
+User ←──────→ Story
+
+Ask:
+
+Can one user be associated with many stories?
+
+Yes.
+
+Can one story be associated with many users?
+
+Yes, if we're talking about users who viewed the story.
+
+Therefore:
+
+User        Story
+  │           │
+  │           │
+  └──────┬────┘
+         │
+         ▼
+    StoryView
+
+StoryView is the junction table.
+
 
 - Users (1) ↔ (M) Messages
 - Users (M) ↔ (M) Users (followers through junction table)

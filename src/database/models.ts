@@ -5,7 +5,8 @@ import Post from '@modules/posts/post.model';
 import Comment from '@modules/comments/comment.model';
 import Like from '@modules/likes/like.model.js';
 import Connection from '@modules/connections/connection.model';
-// import Story from '../modules/stories/story.model.js';
+import Story from '@modules/stories/story.model';
+import StoryView from '@modules/stories/story-view.model';
 // import Upload from '../modules/uploads/upload.model.js';
 // import Message from '../modules/messages/message.model.js';
 // import Notification from '../modules/notifications/notification.model.js';
@@ -210,19 +211,46 @@ export const setupAssociations = (): void => {
   |
   | A user can create many stories.
   | A story belongs to one user.
-  |
+  | 
   */
 
-//   User.hasMany(Story, {
-//     foreignKey: 'userId',
-//     as: 'stories',
-//     onDelete: 'CASCADE',
-//   });
+  User.hasMany(Story, {
+    foreignKey: 'userId',
+    as: 'stories',
+    onDelete: 'CASCADE',
+  });
 
-//   Story.belongsTo(User, {
-//     foreignKey: 'userId',
-//     as: 'user',
-//   });
+  Story.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
+  });
+
+  Story.belongsToMany(User, {
+    through: 'story_views',
+    as: 'viewers',
+    foreignKey: 'storyId',
+    otherKey: 'userId',
+    timestamps: false,
+  });
+
+  User.belongsToMany(Story, {
+    through: 'story_views',
+    as: 'viewedStories',
+    foreignKey: 'userId',
+    otherKey: 'storyId',
+    timestamps: false,
+  });
+
+// story view association
+  StoryView.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
+  });
+
+  StoryView.belongsTo(Story, {
+    foreignKey: 'storyId',
+    as: 'story',
+  });
 
   /*
   |--------------------------------------------------------------------------
