@@ -8,21 +8,23 @@ import {
 
 import { sequelize } from '@config/database';
 
-class Post extends Model <InferAttributes<Post>,InferCreationAttributes<Post>> {
+class Comment extends Model<
+  InferAttributes<Comment>,
+  InferCreationAttributes<Comment>
+> {
   declare id: CreationOptional<number>;
 
   declare userId: number;
+  declare postId: number;
 
-  declare content: string | null;
-
-  declare imageUrl: string | null;
+  declare content: string;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
   declare deletedAt: CreationOptional<Date | null>;
 }
 
-Post.init(
+Comment.init(
   {
     id: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -33,29 +35,21 @@ Post.init(
     userId: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE',
       field: 'user_id',
+    },
+
+    postId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      field: 'post_id',
     },
 
     content: {
       type: DataTypes.TEXT,
-      allowNull: true,
+      allowNull: false,
       validate: {
-        len: [0, 5000],
-      },
-    },
-
-    imageUrl: {
-      type: DataTypes.STRING(500),
-      allowNull: true,
-      field: 'image_url',
-      validate: {
-        isUrl: true,
+        len: [1, 1000],
+        notEmpty: true,
       },
     },
 
@@ -79,8 +73,9 @@ Post.init(
   },
   {
     sequelize,
-    tableName: 'posts',
-    modelName: 'Post',
+    tableName: 'comments',
+    modelName: 'Comment',
+
     timestamps: true,
     underscored: true,
     paranoid: true,
@@ -90,13 +85,13 @@ Post.init(
         fields: ['user_id'],
       },
       {
-        fields: ['created_at'],
+        fields: ['post_id'],
       },
       {
-        fields: ['user_id', 'created_at'],
+        fields: ['post_id', 'created_at'],
       },
     ],
   },
 );
 
-export default Post;
+export default Comment;

@@ -196,37 +196,4 @@ User.init(
   }
 );
 
-// Set up associations after model definition
-User.associate = (models: any) => {
-  User.hasMany(models.Post, {
-    foreignKey: 'userId',
-    as: 'posts',
-    onDelete: 'CASCADE',
-  });
-
-  User.hasMany(models.Comment, {
-    foreignKey: 'userId',
-    as: 'comments',
-    onDelete: 'CASCADE',
-  });
-
-  User.hasMany(models.Message, {
-    foreignKey: 'senderId',
-    as: 'sentMessages',
-    onDelete: 'CASCADE',
-  });
-
-  User.hasMany(models.Message, {
-    foreignKey: 'receiverId',
-    as: 'receivedMessages',
-    onDelete: 'CASCADE',
-  });
-
-  User.hasMany(models.Story, {
-    foreignKey: 'userId',
-    as: 'stories',
-    onDelete: 'CASCADE',
-  });
-};
-
 export default User;

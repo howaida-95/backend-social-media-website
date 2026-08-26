@@ -3,10 +3,12 @@ https://chatgpt.com/g/g-p-6a792f8cb0088191b65d15e0dcc54d46/c/6a8cab1d-f64c-83ea-
 ## Entities & Relationships
 - Users (1) ↔ (M) Posts 
 => (one user can create multiple posts, but one post belongs only to one user)
+- User (1) ↔ (M) Comments
+- Posts (1) ↔ (M) Comments
+=>  comment belong to  one user & to one post 
 - Users (1) ↔ (M) Messages
 - Users (M) ↔ (M) Users (followers through junction table)
 - Posts (1) ↔ (M) Likes (unique constraint: user_post)
-- Posts (1) ↔ (M) Comments
 
 ## Indexing Strategy
 - Users: email, username (unique indexes)
@@ -70,7 +72,7 @@ Scenario	                        Use Migrations?
 
 TLDR: Always use migrations. No exceptions.
 
-npx sequelize-cli migration:generate --name create-posts --migrations-path src/database/migrations
+npx sequelize-cli migration:generate --name create-comments --migrations-path src/database/migrations
 
 "db:migrate": "sequelize-cli db:migrate --config sequelize.config.cjs",
 
