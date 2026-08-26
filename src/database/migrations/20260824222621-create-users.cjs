@@ -1,13 +1,12 @@
 'use strict';
 
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('users', {
       id: {
         type: Sequelize.INTEGER.UNSIGNED,
         autoIncrement: true,
         primaryKey: true,
-        allowNull: false,
       },
 
       first_name: {
@@ -62,18 +61,30 @@ module.exports = {
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        defaultValue: Sequelize.NOW,
       },
 
       updated_at: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        defaultValue: Sequelize.NOW,
+      },
+
+      deleted_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
       },
     });
+
+    // Add indexes
+    await queryInterface.addIndex('users', ['email'], { unique: true });
+    await queryInterface.addIndex('users', ['username'], { unique: true });
+    await queryInterface.addIndex('users', ['is_active']);
+    await queryInterface.addIndex('users', ['role']);
+    await queryInterface.addIndex('users', ['created_at']);
   },
 
-  async down(queryInterface, Sequelize) {
+  down: async (queryInterface) => {
     await queryInterface.dropTable('users');
   },
 };

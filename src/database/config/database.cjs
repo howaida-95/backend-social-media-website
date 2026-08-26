@@ -1,3 +1,4 @@
+// this file needed for migrate to work, it's in cjs format because sequelize-cli doesn't support esm yet
 require('dotenv').config();
 
 module.exports = {

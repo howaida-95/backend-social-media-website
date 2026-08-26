@@ -1,7 +1,8 @@
 # Pingup Database Design
-
+https://chatgpt.com/g/g-p-6a792f8cb0088191b65d15e0dcc54d46/c/6a8cab1d-f64c-83ea-b208-653a8e8e0350 
 ## Entities & Relationships
-- Users (1) ↔ (M) Posts
+- Users (1) ↔ (M) Posts 
+=> (one user can create multiple posts, but one post belongs only to one user)
 - Users (1) ↔ (M) Messages
 - Users (M) ↔ (M) Users (followers through junction table)
 - Posts (1) ↔ (M) Likes (unique constraint: user_post)
@@ -54,16 +55,30 @@ Frontend guessing what data structure is
 
 ✅ migrations
 (If Git tracks changes to your code, migrations track changes to your database schema.)
+migration has 2 directions:
+- up(): Moves your database forward (CREATE TABLE users)
+- down(): Reverts the migration(DROP TABLE users)
+This is extremely important in a professional backend because you can move between database versions.
+
 Quick Answer to Your Question
 Scenario	                        Use Migrations?
-- Building initial schema (Pingup)	✅ YES
-- Making ANY schema change	        ✅ YES
-- Updating existing data in prod	✅ YES
-- Local development	                ✅ YES
-- Team project	                    ✅ YES
+- Building initial schema (Pingup)  ✅ YES
+- Making ANY schema change	         ✅ YES
+- Updating existing data in prod	   ✅ YES
+- Local development	               ✅ YES
+- Team project	                     ✅ YES
 
 TLDR: Always use migrations. No exceptions.
 
-npx sequelize-cli migration:generate --name create-users --migrations-path src/database/migrations
+npx sequelize-cli migration:generate --name create-posts --migrations-path src/database/migrations
 
 "db:migrate": "sequelize-cli db:migrate --config sequelize.config.cjs",
+
+## Migration vs Model ## 
+- Migration: Responsible for changing the database structure.
+- Model: Responsible for allowing your Node.js application to work with that table.
+
+So don't think:
+"The model creates my database."
+Instead:
+Migration defines and changes the database schema, while the Sequelize model represents that schema inside the application.

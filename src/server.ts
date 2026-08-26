@@ -9,14 +9,14 @@ server.ts
 └── Handle startup errors
 */
 
-import { env } from '@config/env.ts';
-import { connectDatabase } from '@config/database.ts';
-import app from './app.ts';
+import { env } from '@config/env';
+import { connectDatabase } from '@config/database';
+import app from '@app';
 
 /* Load associations before the application starts
 This ensures the models and associations are loaded before requests start hitting the application.
 */
-import '@database/models.ts';
+import '@database/models';
 
 const startServer = async () => {
   try {

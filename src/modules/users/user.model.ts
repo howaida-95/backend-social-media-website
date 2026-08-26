@@ -1,12 +1,11 @@
 /*
 Defines the database representation.
-
 For example:
-User
-Post
-Comment
-Message
-Story
+  User
+  Post
+  Comment
+  Message
+  Story
 */
 
 import {
@@ -17,12 +16,9 @@ import {
   Model,
 } from 'sequelize';
 
-import { sequelize } from '@config/database.ts';
+import { sequelize } from '@config/database';
 
-class User extends Model<
-  InferAttributes<User>,
-  InferCreationAttributes<User>
-> {
+class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare id: CreationOptional<number>;
 
   declare firstName: string;
@@ -41,6 +37,7 @@ class User extends Model<
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare deletedAt: CreationOptional<Date | null>;
 }
 
 User.init(
@@ -55,18 +52,30 @@ User.init(
       type: DataTypes.STRING(100),
       allowNull: false,
       field: 'first_name',
+      validate: {
+        len: [1, 100],
+        notEmpty: true,
+      },
     },
 
     lastName: {
       type: DataTypes.STRING(100),
       allowNull: false,
       field: 'last_name',
+      validate: {
+        len: [1, 100],
+        notEmpty: true,
+      },
     },
 
     username: {
       type: DataTypes.STRING(50),
       allowNull: false,
       unique: true,
+      validate: {
+        len: [3, 50],
+        isAlphanumeric: true,
+      },
     },
 
     email: {
@@ -81,16 +90,24 @@ User.init(
     password: {
       type: DataTypes.STRING(255),
       allowNull: false,
+      // Note: Always hash passwords before storing (bcrypt, argon2, etc.)
+      // Never store plain text passwords
     },
 
     avatar: {
       type: DataTypes.STRING(500),
       allowNull: true,
+      validate: {
+        isUrl: true,
+      },
     },
 
     bio: {
       type: DataTypes.TEXT,
       allowNull: true,
+      validate: {
+        len: [0, 500],
+      },
     },
 
     role: {
@@ -117,11 +134,46 @@ User.init(
       allowNull: false,
       field: 'updated_at',
     },
+
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'deleted_at',
+    },
   },
   {
     sequelize,
     tableName: 'users',
+    modelName: 'User',
+    timestamps: true,
+    underscored: true,
+    paranoid: true,
+    /*
+    index is a database optimization that makes searching/filtering data faster.
+    Think of it like the index at the back of a book.
+    Without an index:
 
+    Find user where email = "test@gmail.com"
+
+    MySQL:
+    User 1 → check
+    User 2 → check
+    User 3 → check
+    ...
+    User 1,000,000 → check
+
+    Potentially scan many rows
+
+    With an index on email:
+
+    email index
+         ↓
+    "test@gmail.com"
+         ↓
+    User #58291
+
+    MySQL can find the row much more efficiently.
+    */
     indexes: [
       {
         unique: true,
@@ -131,8 +183,50 @@ User.init(
         unique: true,
         fields: ['username'],
       },
+      {
+        fields: ['is_active'],
+      },
+      {
+        fields: ['role'],
+      },
+      {
+        fields: ['created_at'],
+      },
     ],
   }
 );
+
+// Set up associations after model definition
+User.associate = (models: any) => {
+  User.hasMany(models.Post, {
+    foreignKey: 'userId',
+    as: 'posts',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(models.Comment, {
+    foreignKey: 'userId',
+    as: 'comments',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(models.Message, {
+    foreignKey: 'senderId',
+    as: 'sentMessages',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(models.Message, {
+    foreignKey: 'receiverId',
+    as: 'receivedMessages',
+    onDelete: 'CASCADE',
+  });
+
+  User.hasMany(models.Story, {
+    foreignKey: 'userId',
+    as: 'stories',
+    onDelete: 'CASCADE',
+  });
+};
 
 export default User;

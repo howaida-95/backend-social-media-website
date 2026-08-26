@@ -5,7 +5,7 @@ Responsible for creating/configuring your Sequelize instance.
 
 import { Sequelize } from 'sequelize';
 
-import { env } from './env.ts';
+import { env } from './env';
 
 const sequelize = new Sequelize(
   env.database.name,
