@@ -7,9 +7,9 @@ import Like from '@modules/likes/like.model.js';
 import Connection from '@modules/connections/connection.model';
 import Story from '@modules/stories/story.model';
 import StoryView from '@modules/stories/story-view.model';
-// import Upload from '../modules/uploads/upload.model.js';
-// import Message from '../modules/messages/message.model.js';
-// import Notification from '../modules/notifications/notification.model.js';
+//import Upload from '../modules/uploads/upload.model.js';
+import Message from '@modules/messages/message.model';
+import Notification from '@odules/notifications/notification.model';
 
 
   /*
@@ -266,27 +266,86 @@ export const setupAssociations = (): void => {
   |
   */
 
-//   User.hasMany(Message, {
-//     foreignKey: 'senderId',
-//     as: 'sentMessages',
-//     onDelete: 'CASCADE',
-//   });
+  User.hasMany(Message, {
+    foreignKey: 'senderId',
+    as: 'sentMessages',
+    onDelete: 'CASCADE',
+  });
 
-//   User.hasMany(Message, {
-//     foreignKey: 'receiverId',
-//     as: 'receivedMessages',
-//     onDelete: 'CASCADE',
-//   });
+  User.hasMany(Message, {
+    foreignKey: 'receiverId',
+    as: 'receivedMessages',
+    onDelete: 'CASCADE',
+  });
 
-//   Message.belongsTo(User, {
-//     foreignKey: 'senderId',
-//     as: 'sender',
-//   });
+  Message.belongsTo(User, {
+    foreignKey: 'senderId',
+    as: 'sender',
+  });
 
-//   Message.belongsTo(User, {
-//     foreignKey: 'receiverId',
-//     as: 'receiver',
-//   });
+  Message.belongsTo(User, {
+    foreignKey: 'receiverId',
+    as: 'receiver',
+  });
+
+    /*
+  |--------------------------------------------------------------------------
+  | User ↔ Notifications ↔ Post ↔ User
+  |--------------------------------------------------------------------------
+  |
+  | 
+  |
+  | 
+  | 
+  |
+  | 
+  |
+  */
+
+  User.hasMany(Notification, {
+  foreignKey: 'recipientId',
+  as: 'notifications',
+  onDelete: 'CASCADE',
+});
+
+  User.hasMany(Notification, {
+    foreignKey: 'senderId',
+    as: 'sentNotifications',
+    onDelete: 'CASCADE',
+  });
+
+  Notification.belongsTo(User, {
+    foreignKey: 'recipientId',
+    as: 'recipient',
+  });
+
+  Notification.belongsTo(User, {
+    foreignKey: 'senderId',
+    as: 'sender',
+  });
+
+  Post.hasMany(Notification, {
+    foreignKey: 'postId',
+    as: 'notifications',
+    onDelete: 'CASCADE',
+  });
+
+  Notification.belongsTo(Post, {
+    foreignKey: 'postId',
+    as: 'post',
+  });
+
+  Message.hasMany(Notification, {
+    foreignKey: 'messageId',
+    as: 'notifications',
+    onDelete: 'CASCADE',
+  });
+
+  Notification.belongsTo(Message, {
+    foreignKey: 'messageId',
+    as: 'message',
+  });
+
 };
 
 setupAssociations();
