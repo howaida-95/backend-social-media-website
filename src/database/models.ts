@@ -3,7 +3,7 @@
 import User from '@modules/users/user.model';
 import Post from '@modules/posts/post.model';
 import Comment from '@modules/comments/comment.model';
-// import Like from '../modules/likes/like.model.js';
+import Like from '@modules/likes/like.model.js';
 // import Connection from '../modules/connections/connection.model.js';
 // import Story from '../modules/stories/story.model.js';
 // import Upload from '../modules/uploads/upload.model.js';
@@ -108,16 +108,16 @@ export const setupAssociations = (): void => {
   |
   */
 
-//   User.hasMany(Like, {
-//     foreignKey: 'userId',
-//     as: 'likes',
-//     onDelete: 'CASCADE',
-//   });
+    User.hasMany(Like, {
+      foreignKey: 'userId',
+      as: 'likes',
+      onDelete: 'CASCADE',
+    });
 
-//   Like.belongsTo(User, {
-//     foreignKey: 'userId',
-//     as: 'user',
-//   });
+    Like.belongsTo(User, {
+      foreignKey: 'userId',
+      as: 'user',
+    });
 
   /*
   |--------------------------------------------------------------------------
@@ -129,16 +129,16 @@ export const setupAssociations = (): void => {
   |
   */
 
-//   Post.hasMany(Like, {
-//     foreignKey: 'postId',
-//     as: 'likes',
-//     onDelete: 'CASCADE',
-//   });
+  Post.hasMany(Like, {
+    foreignKey: 'postId',
+    as: 'likes',
+    onDelete: 'CASCADE',
+  });
 
-//   Like.belongsTo(Post, {
-//     foreignKey: 'postId',
-//     as: 'post',
-//   });
+  Like.belongsTo(Post, {
+    foreignKey: 'postId',
+    as: 'post',
+  });
 
   /*
   |--------------------------------------------------------------------------

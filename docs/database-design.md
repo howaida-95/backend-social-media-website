@@ -6,9 +6,12 @@ https://chatgpt.com/g/g-p-6a792f8cb0088191b65d15e0dcc54d46/c/6a8cab1d-f64c-83ea-
 - User (1) ↔ (M) Comments
 - Posts (1) ↔ (M) Comments
 =>  comment belong to  one user & to one post 
+- user (1) ↔ (M) Likes 
+- Posts (1) ↔ (M) Likes (unique constraint: user_post)
+=> User 1 ──────── * Like * ──────── 1 Post
+=> like represents  Which user liked which post?
 - Users (1) ↔ (M) Messages
 - Users (M) ↔ (M) Users (followers through junction table)
-- Posts (1) ↔ (M) Likes (unique constraint: user_post)
 
 ## Indexing Strategy
 - Users: email, username (unique indexes)

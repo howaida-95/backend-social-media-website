@@ -1,15 +1,15 @@
-import { QueryInterface, DataTypes } from 'sequelize';
+'use strict';
 
-export async function up(queryInterface: QueryInterface) {
+export async function up(queryInterface, Sequelize) {
   await queryInterface.createTable('posts', {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: Sequelize.INTEGER.UNSIGNED,
       autoIncrement: true,
       primaryKey: true,
     },
 
     user_id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: Sequelize.INTEGER.UNSIGNED,
       allowNull: false,
       references: {
         model: 'users',
@@ -20,29 +20,29 @@ export async function up(queryInterface: QueryInterface) {
     },
 
     content: {
-      type: DataTypes.TEXT,
+      type: Sequelize.TEXT,
       allowNull: true,
     },
 
     image_url: {
-      type: DataTypes.STRING(500),
+      type: Sequelize.STRING(500),
       allowNull: true,
     },
 
     created_at: {
-      type: DataTypes.DATE,
+      type: Sequelize.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW,
+      defaultValue: Sequelize.NOW,
     },
 
     updated_at: {
-      type: DataTypes.DATE,
+      type: Sequelize.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW,
+      defaultValue: Sequelize.NOW,
     },
 
     deleted_at: {
-      type: DataTypes.DATE,
+      type: Sequelize.DATE,
       allowNull: true,
     },
   });
@@ -53,6 +53,6 @@ export async function up(queryInterface: QueryInterface) {
   await queryInterface.addIndex('posts', ['user_id', 'created_at']);
 }
 
-export async function down(queryInterface: QueryInterface) {
+export async function down(queryInterface) {
   await queryInterface.dropTable('posts');
 }
