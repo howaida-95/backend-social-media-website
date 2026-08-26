@@ -10,6 +10,12 @@ https://chatgpt.com/g/g-p-6a792f8cb0088191b65d15e0dcc54d46/c/6a8cab1d-f64c-83ea-
 - Posts (1) ↔ (M) Likes (unique constraint: user_post)
 => User 1 ──────── * Like * ──────── 1 Post
 => like represents  Which user liked which post?
+- User
+ │
+ ├── following → Users (User who follows)
+ │
+ └── followers → Users (User being followed)
+
 - Users (1) ↔ (M) Messages
 - Users (M) ↔ (M) Users (followers through junction table)
 

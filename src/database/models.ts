@@ -4,7 +4,7 @@ import User from '@modules/users/user.model';
 import Post from '@modules/posts/post.model';
 import Comment from '@modules/comments/comment.model';
 import Like from '@modules/likes/like.model.js';
-// import Connection from '../modules/connections/connection.model.js';
+import Connection from '@modules/connections/connection.model';
 // import Story from '../modules/stories/story.model.js';
 // import Upload from '../modules/uploads/upload.model.js';
 // import Message from '../modules/messages/message.model.js';
@@ -156,19 +156,19 @@ export const setupAssociations = (): void => {
   |
   */
 
-//   User.belongsToMany(User, {
-//     through: Follower,
-//     foreignKey: 'followerId',
-//     otherKey: 'followingId',
-//     as: 'following',
-//   });
+  User.belongsToMany(User, {
+    through: Connection,
+    foreignKey: 'followerId',
+    otherKey: 'followingId',
+    as: 'following',
+  });
 
-//   User.belongsToMany(User, {
-//     through: Follower,
-//     foreignKey: 'followingId',
-//     otherKey: 'followerId',
-//     as: 'followers',
-//   });
+  User.belongsToMany(User, {
+    through: Connection,
+    foreignKey: 'followingId',
+    otherKey: 'followerId',
+    as: 'followers',
+  });
 
   /*
   |--------------------------------------------------------------------------
@@ -179,27 +179,29 @@ export const setupAssociations = (): void => {
   |
   */
 
-//   Follower.belongsTo(User, {
-//     foreignKey: 'followerId',
-//     as: 'follower',
-//   });
+  User.belongsToMany(User, {
+    through: Connection,
+    foreignKey: 'followerId',
+    otherKey: 'followingId',
+    as: 'following',
+  });
 
-//   Follower.belongsTo(User, {
-//     foreignKey: 'followingId',
-//     as: 'following',
-//   });
+  User.belongsToMany(User, {
+    through: Connection,
+    foreignKey: 'followingId',
+    otherKey: 'followerId',
+    as: 'followers',
+  });
 
-//   User.hasMany(Follower, {
-//     foreignKey: 'followerId',
-//     as: 'followingRelations',
-//     onDelete: 'CASCADE',
-//   });
+  Connection.belongsTo(User, {
+    foreignKey: 'followerId',
+    as: 'follower',
+  });
 
-//   User.hasMany(Follower, {
-//     foreignKey: 'followingId',
-//     as: 'followerRelations',
-//     onDelete: 'CASCADE',
-//   });
+  Connection.belongsTo(User, {
+    foreignKey: 'followingId',
+    as: 'following',
+  });
 
   /*
   |--------------------------------------------------------------------------
