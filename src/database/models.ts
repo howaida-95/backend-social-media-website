@@ -9,7 +9,7 @@ import Story from '@modules/stories/story.model';
 import StoryView from '@modules/stories/story-view.model';
 //import Upload from '../modules/uploads/upload.model.js';
 import Message from '@modules/messages/message.model';
-import Notification from '@odules/notifications/notification.model';
+import Notification from '@modules/notifications/notification.model';
 
 
   /*
@@ -173,26 +173,12 @@ export const setupAssociations = (): void => {
 
   /*
   |--------------------------------------------------------------------------
-  | Follower ↔ User
+  | Connection ↔ User
   |--------------------------------------------------------------------------
   |
   | Explicit relationships for querying the junction table directly.
   |
   */
-
-  User.belongsToMany(User, {
-    through: Connection,
-    foreignKey: 'followerId',
-    otherKey: 'followingId',
-    as: 'following',
-  });
-
-  User.belongsToMany(User, {
-    through: Connection,
-    foreignKey: 'followingId',
-    otherKey: 'followerId',
-    as: 'followers',
-  });
 
   Connection.belongsTo(User, {
     foreignKey: 'followerId',
