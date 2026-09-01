@@ -41,6 +41,16 @@ module.exports = {
         allowNull: true,
       },
 
+      avatar_upload_id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        allowNull: true,
+      },
+
+      cover_upload_id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        allowNull: true,
+      },
+
       bio: {
         type: Sequelize.TEXT,
         allowNull: true,

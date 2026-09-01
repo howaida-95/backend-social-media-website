@@ -19,6 +19,7 @@ class Message extends Model<
 
   declare text: string | null;
   declare imageUrl: string | null;
+  declare uploadId: number | null;
 
   declare isRead: CreationOptional<boolean>;
 
@@ -69,6 +70,18 @@ Message.init(
       field: 'image_url',
     },
 
+    uploadId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: 'uploads',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      field: 'upload_id',
+    },
+
     isRead: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -98,7 +111,7 @@ Message.init(
 
     validate: {
       hasContent() {
-        if (!this.text && !this.imageUrl) {
+        if (!this.text && !this.imageUrl && !this.uploadId) {
           throw new Error('Message must contain text or an image.');
         }
       },
@@ -112,6 +125,11 @@ Message.init(
       {
         fields: ['receiver_id', 'is_read'],
         name: 'messages_receiver_read_idx',
+      },
+      {
+        unique: true,
+        fields: ['upload_id'],
+        name: 'messages_upload_id_unique',
       },
     ],
   },

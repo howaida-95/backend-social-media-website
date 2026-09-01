@@ -37,6 +37,17 @@ module.exports = {
         allowNull: true,
       },
 
+      upload_id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        allowNull: true,
+        references: {
+          model: 'uploads',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+      },
+
       background_color: {
         type: Sequelize.STRING(7),
         allowNull: true,
@@ -73,6 +84,11 @@ module.exports = {
 
     await queryInterface.addIndex('stories', ['expires_at'], {
       name: 'stories_expires_at_index',
+    });
+
+    await queryInterface.addIndex('stories', ['upload_id'], {
+      name: 'stories_upload_id_unique',
+      unique: true,
     });
   },
 

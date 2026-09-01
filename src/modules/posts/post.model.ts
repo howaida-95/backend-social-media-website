@@ -16,6 +16,7 @@ class Post extends Model <InferAttributes<Post>,InferCreationAttributes<Post>> {
   declare content: string | null;
 
   declare imageUrl: string | null;
+  declare uploadId: number | null;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -59,6 +60,18 @@ Post.init(
       },
     },
 
+    uploadId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: 'uploads',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      field: 'upload_id',
+    },
+
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -94,6 +107,10 @@ Post.init(
       },
       {
         fields: ['user_id', 'created_at'],
+      },
+      {
+        unique: true,
+        fields: ['upload_id'],
       },
     ],
   },

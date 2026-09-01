@@ -10,6 +10,7 @@
     "start": "node src/app.ts",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:undo": "npx sequelize-cli db:migrate:undo",
+    "db:undo:all": "npx sequelize-cli db:migrate:undo:all",
     "db:seed": "npx sequelize-cli db:seed:all",
     "db:reset": "npm run db:undo && npm run db:migrate"
   },

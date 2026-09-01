@@ -20,6 +20,7 @@ class Story extends Model<
 
   declare content: string | null;
   declare mediaUrl: string | null;
+  declare uploadId: number | null;
 
   declare backgroundColor: CreationOptional<string>;
 
@@ -60,6 +61,18 @@ Story.init(
       type: DataTypes.STRING(500),
       allowNull: true,
       field: 'media_url',
+    },
+
+    uploadId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: 'uploads',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      field: 'upload_id',
     },
 
     backgroundColor: {
@@ -119,9 +132,9 @@ Story.init(
           throw new Error('Text stories require content.');
         }
 
-        if (this.type !== 'text' && !this.mediaUrl) {
+        if (this.type !== 'text' && !this.mediaUrl && !this.uploadId) {
           throw new Error(
-            'Photo/video stories require a mediaUrl.'
+            'Photo/video stories require an upload or mediaUrl.'
           );
         }
       },
@@ -133,6 +146,10 @@ Story.init(
       },
       {
         fields: ['expires_at'],
+      },
+      {
+        unique: true,
+        fields: ['upload_id'],
       },
     ],
   }

@@ -29,6 +29,8 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare password: string;
 
   declare avatar: string | null;
+  declare avatarUploadId: number | null;
+  declare coverUploadId: number | null;
   declare bio: string | null;
 
   declare role: CreationOptional<'user' | 'admin'>;
@@ -100,6 +102,30 @@ User.init(
       validate: {
         isUrl: true,
       },
+    },
+
+    avatarUploadId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: 'uploads',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      field: 'avatar_upload_id',
+    },
+
+    coverUploadId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: 'uploads',
+        key: 'id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
+      field: 'cover_upload_id',
     },
 
     bio: {
@@ -191,6 +217,14 @@ User.init(
       },
       {
         fields: ['created_at'],
+      },
+      {
+        unique: true,
+        fields: ['avatar_upload_id'],
+      },
+      {
+        unique: true,
+        fields: ['cover_upload_id'],
       },
     ],
   }

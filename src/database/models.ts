@@ -10,7 +10,7 @@ import StoryView from '@modules/stories/story-view.model';
 //import Upload from '../modules/uploads/upload.model.js';
 import Message from '@modules/messages/message.model';
 import Notification from '@modules/notifications/notification.model';
-
+import Upload from '@modules/uploads/uploads.model';
 
   /*
 |--------------------------------------------------------------------------
@@ -332,6 +332,72 @@ export const setupAssociations = (): void => {
     as: 'message',
   });
 
+    /*
+  |--------------------------------------------------------------------------
+  | Upload ↔ User (uploader)
+  |--------------------------------------------------------------------------
+  */
+
+  Upload.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
+  });
+
+  User.hasMany(Upload, {
+    foreignKey: 'userId',
+    as: 'uploads',
+    onDelete: 'CASCADE',
+  });
+
+  /*
+  |--------------------------------------------------------------------------
+  | Upload ownership (parent holds uploadId)
+  |--------------------------------------------------------------------------
+  |
+  | purpose  → why the file was uploaded (validation, quotas, storage path)
+  | uploadId → which entity owns the file (on Post, Story, Message, User)
+  |
+  */
+
+  Post.belongsTo(Upload, {
+    foreignKey: 'uploadId',
+    as: 'upload',
+  });
+
+  Upload.hasOne(Post, {
+    foreignKey: 'uploadId',
+    as: 'post',
+  });
+
+  Story.belongsTo(Upload, {
+    foreignKey: 'uploadId',
+    as: 'upload',
+  });
+
+  Upload.hasOne(Story, {
+    foreignKey: 'uploadId',
+    as: 'story',
+  });
+
+  Message.belongsTo(Upload, {
+    foreignKey: 'uploadId',
+    as: 'upload',
+  });
+
+  Upload.hasOne(Message, {
+    foreignKey: 'uploadId',
+    as: 'message',
+  });
+
+  User.belongsTo(Upload, {
+    foreignKey: 'avatarUploadId',
+    as: 'avatarUpload',
+  });
+
+  User.belongsTo(Upload, {
+    foreignKey: 'coverUploadId',
+    as: 'coverUpload',
+  });
 };
 
 setupAssociations();

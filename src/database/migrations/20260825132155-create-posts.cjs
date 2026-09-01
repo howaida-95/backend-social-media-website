@@ -1,58 +1,74 @@
 'use strict';
 
-export async function up(queryInterface, Sequelize) {
-  await queryInterface.createTable('posts', {
-    id: {
-      type: Sequelize.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-
-    user_id: {
-      type: Sequelize.INTEGER.UNSIGNED,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
+module.exports = {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable('posts', {
+      id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE',
-    },
 
-    content: {
-      type: Sequelize.TEXT,
-      allowNull: true,
-    },
+      user_id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        allowNull: false,
+        references: {
+          model: 'users',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+      },
 
-    image_url: {
-      type: Sequelize.STRING(500),
-      allowNull: true,
-    },
+      content: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
 
-    created_at: {
-      type: Sequelize.DATE,
-      allowNull: false,
-      defaultValue: Sequelize.NOW,
-    },
+      image_url: {
+        type: Sequelize.STRING(500),
+        allowNull: true,
+      },
 
-    updated_at: {
-      type: Sequelize.DATE,
-      allowNull: false,
-      defaultValue: Sequelize.NOW,
-    },
+      upload_id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        allowNull: true,
+        references: {
+          model: 'uploads',
+          key: 'id',
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+      },
 
-    deleted_at: {
-      type: Sequelize.DATE,
-      allowNull: true,
-    },
-  });
+      created_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.NOW,
+      },
 
-  // Add indexes
-  await queryInterface.addIndex('posts', ['user_id']);
-  await queryInterface.addIndex('posts', ['created_at']);
-  await queryInterface.addIndex('posts', ['user_id', 'created_at']);
-}
+      updated_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.NOW,
+      },
 
-export async function down(queryInterface) {
-  await queryInterface.dropTable('posts');
-}
+      deleted_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+    });
+
+    await queryInterface.addIndex('posts', ['user_id']);
+    await queryInterface.addIndex('posts', ['created_at']);
+    await queryInterface.addIndex('posts', ['user_id', 'created_at']);
+    await queryInterface.addIndex('posts', ['upload_id'], {
+      name: 'posts_upload_id_unique',
+      unique: true,
+    });
+  },
+
+  async down(queryInterface) {
+    await queryInterface.dropTable('posts');
+  },
+};
