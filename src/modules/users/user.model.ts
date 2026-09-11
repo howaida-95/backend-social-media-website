@@ -26,8 +26,12 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
 
   declare username: string;
   declare email: string;
+  declare emailVerified: boolean;
   declare password: string;
-
+  declare resetPasswordToken: string | null;
+  declare resetPasswordExpires: Date | null;
+  declare provider: 'google' | 'local';
+  declare googleId: string | null;
   declare avatar: string | null;
   declare avatarUploadId: number | null;
   declare coverUploadId: number | null;
@@ -88,14 +92,37 @@ User.init(
         isEmail: true,
       },
     },
-
+    emailVerified: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'email_verified',
+    },
     password: {
       type: DataTypes.STRING(255),
-      allowNull: false,
+      allowNull: true,
       // Note: Always hash passwords before storing (bcrypt, argon2, etc.)
       // Never store plain text passwords
     },
-
+    resetPasswordToken:{
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      unique: true,
+    },
+    resetPasswordExpires:{
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    provider: {
+      type: DataTypes.ENUM('google', 'local'),
+      allowNull: true,
+      defaultValue: 'local',
+    },
+    googleId: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      unique: true,
+    },
     avatar: {
       type: DataTypes.STRING(500),
       allowNull: true,
@@ -225,6 +252,17 @@ User.init(
       {
         unique: true,
         fields: ['cover_upload_id'],
+      },
+      {
+        fields: ['email_verified'],
+      },
+      {
+        unique: true,
+        fields: ['reset_password_token'],
+      },
+      {
+        unique: true,
+        fields: ['google_id'],
       },
     ],
   }

@@ -30,12 +30,35 @@ module.exports = {
         allowNull: false,
         unique: true,
       },
-
+      emailVerified: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        field: 'email_verified',
+      },
       password: {
         type: Sequelize.STRING(255),
         allowNull: false,
       },
-
+      resetPasswordToken:{
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        unique: true,
+      },
+      resetPasswordExpires:{
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      provider: {
+        type: DataTypes.ENUM('google', 'local'),
+        allowNull: true,
+        defaultValue: 'local',
+      },
+      googleId: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        unique: true,
+      },
       avatar: {
         type: Sequelize.STRING(500),
         allowNull: true,
@@ -92,6 +115,9 @@ module.exports = {
     await queryInterface.addIndex('users', ['is_active']);
     await queryInterface.addIndex('users', ['role']);
     await queryInterface.addIndex('users', ['created_at']);
+    await queryInterface.addIndex('users', ['email_verified']);
+    await queryInterface.addIndex('users', ['reset_password_token'], { unique: true });
+    await queryInterface.addIndex('users', ['google_id'], { unique: true });
   },
 
   down: async (queryInterface) => {
