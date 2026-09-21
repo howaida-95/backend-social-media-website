@@ -1,55 +1,41 @@
 /*
 Responsible for creating/configuring Express.
-app.ts
-│
-├── Create Express app
-├── Global middleware
-├── Routes
-├── 404 handler
-├── Error handler
-└── Export app
+It is the entry point for the application.
+It is responsible for 
+- creating the express app and configuring it.
+- setting up the middleware for the application.
+- setting up the routes for the application.
+- setting up the error handling middleware for the application.
+- exporting the app for the server.
 */
 
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { env } from './config/env.ts';
+import cookieParser from 'cookie-parser';
+import authRoutes from '@modules/auth/auth.routes';
+import { env } from '@config/env';
+import { AppError } from '@utils/AppError';
 
 const app = express();
 
-/**
- * Global middlewares
-*/
-
-/*
-Helmet is a security middleware for Express.
-It automatically adds several HTTP security headers to your responses.
-*/
+// helmet is used to secure the app by setting various HTTP headers
 app.use(helmet());
-/*
-CORS stands for:Cross-Origin Resource Sharing
-It controls whether a browser is allowed to make requests to your backend from a different origin.
-=> Access-Control-Allow-Origin: *
-*/
-app.use(cors({
-    origin: env.FRONTEND_URL,
-    credentials: true
-  }));
-
-/*
-It tells Express:
-If the request contains JSON, parse it and make it available through req.body.
-*/
+// cors is used to allow the app to be accessed from the frontend
+app.use(
+  cors({
+    origin: env.frontendUrl,
+    credentials: true,
+  }),
+);
+// express.json() is used to parse the request body as JSON
 app.use(express.json());
-/*
-This parses requests containing:
-application/x-www-form-urlencoded
-*/
+// express.urlencoded({ extended: true }) is used to parse the request body as URL encoded data
 app.use(express.urlencoded({ extended: true }));
+// cookieParser is used to parse the request body as cookies
+app.use(cookieParser());
 
-/**
- * Health check
- */
+// health check route
 app.get('/api/health', (_req, res) => {
   res.status(200).json({
     success: true,
@@ -57,19 +43,10 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-/**
- * API Routes
- *
- * Routes will be registered here as modules are implemented.
- *
- * Example:
- * app.use('/api/v1/auth', authRoutes);
- * app.use('/api/v1/users', userRoutes);
- */
+// auth routes
+app.use('/api/v1/auth', authRoutes);
 
-/**
- * 404 Handler
- */
+// 404 route
 app.use((_req, res) => {
   res.status(404).json({
     success: false,
@@ -77,19 +54,27 @@ app.use((_req, res) => {
   });
 });
 
-/**
- * Global Error Handler
- *
- * This will be replaced/connected to the centralized
- * error middleware when we implement Phase 5.
- */
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err);
+// error handling middleware
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({
+        success: false,
+        message: err.message,
+      });
+    }
 
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-  });
-});
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  },
+);
 
 export default app;

@@ -27,7 +27,7 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare username: string;
   declare email: string;
   declare emailVerified: boolean;
-  declare password: string;
+  declare password: string | null;
   declare resetPasswordToken: string | null;
   declare resetPasswordExpires: Date | null;
   declare provider: 'google' | 'local';

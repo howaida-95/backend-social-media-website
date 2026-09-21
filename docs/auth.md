@@ -25,7 +25,9 @@ emailVerified          optional but useful
 Backend
 - JWT_SECRET, JWT_EXPIRES_IN
 - FRONTEND_URL (CORS + reset/OAuth redirects)
-- SMTP: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM
+- SMTP: 
+(Simple Mail Transfer Protocol) is a protocol used for sending emails over the internet.
+SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM
 - Google: GOOGLE_CLIENT_ID (and secret if you use server redirect flow)
 
 Frontend
