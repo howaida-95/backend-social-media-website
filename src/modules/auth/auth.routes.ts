@@ -5,7 +5,6 @@ import { authLimiter, forgotPasswordLimiter } from '@middlewares/rate-limit.midd
 import { validateBody } from '@middlewares/validate.middleware';
 import {
   forgotPasswordSchema,
-  googleLoginSchema,
   loginSchema,
   registerSchema,
   resetPasswordSchema,
@@ -13,6 +12,7 @@ import {
 
 const authRoutes = Router();
 
+// Authentication routes
 authRoutes.post('/register', authLimiter, validateBody(registerSchema), authController.register);
 authRoutes.post('/login', authLimiter, validateBody(loginSchema), authController.login);
 authRoutes.post('/logout', authController.logout);
@@ -29,6 +29,9 @@ authRoutes.post(
   validateBody(resetPasswordSchema),
   authController.resetPassword,
 );
-authRoutes.post('/google', validateBody(googleLoginSchema), authController.googleLogin);
+
+// OAuth routes
+authRoutes.get('/google', authLimiter, authController.googleAuth);
+authRoutes.get('/google/callback', authLimiter, authController.googleCallback);
 
 export default authRoutes;

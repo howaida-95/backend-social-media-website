@@ -24,10 +24,6 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-export const googleLoginSchema = z.object({
-  credential: z.string().min(1, 'Google credential is required'),
-});
-
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email(),
 });

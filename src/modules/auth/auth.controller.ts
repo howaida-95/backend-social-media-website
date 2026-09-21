@@ -1,7 +1,21 @@
 import { NextFunction, Request, Response } from 'express';
+import crypto from 'crypto';
 import authService from '@modules/auth/auth.service';
 import { clearAuthCookie, COOKIE_NAME, setAuthCookie } from '@utils/jwt';
 import { AppError } from '@utils/AppError';
+import { env } from '@config/env';
+
+const OAUTH_STATE_COOKIE = 'oauth_state';
+
+const oauthStateCookieOptions = {
+  httpOnly: true,
+  secure: env.nodeEnv === 'production',
+  sameSite: 'lax' as const,
+  maxAge: 10 * 60 * 1000,
+};
+
+const frontendSignInError = (code: string) =>
+  `${env.frontendUrl}/signIn?error=${encodeURIComponent(code)}`;
 
 // A controller handles the request/response logic between the route and the business logic.
 const authController = {
@@ -88,15 +102,61 @@ const authController = {
     }
   },
 
-  googleLogin: async (req: Request, res: Response, next: NextFunction) => {
+  /*
+    1. React clicks "Continue with Google"
+    2. Browser hits this route → redirect to Google
+  */
+  googleAuth: (_req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await authService.googleLogin(req.body);
-      setAuthCookie(res, result.token);
-      return res.status(200).json({
-        message: 'Google login successful',
-        user: result.user,
-      });
+      // 1. Generate a random state for the OAuth flow
+      const state = crypto.randomBytes(16).toString('hex');
+      // 2. Set the state in a cookie
+      res.cookie(OAUTH_STATE_COOKIE, state, oauthStateCookieOptions);
+      // 3. Get the Google OAuth URL
+      const url = authService.getGoogleAuthUrl(state);
+      // 4. Redirect to the Google OAuth URL
+      return res.redirect(url);
     } catch (error) {
+      return next(error);
+    }
+  },
+
+  /*
+    Google redirects here with ?code=&state=
+    Exchange code → find/create user → set httpOnly cookie → redirect to React
+  */
+  googleCallback: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const code = typeof req.query.code === 'string' ? req.query.code : undefined;
+      const state = typeof req.query.state === 'string' ? req.query.state : undefined;
+      const storedState = req.cookies?.[OAUTH_STATE_COOKIE];
+
+      // 1. Clear the state cookie
+      res.clearCookie(OAUTH_STATE_COOKIE, oauthStateCookieOptions);
+
+      // 2. Check if there is an error
+      if (req.query.error) {
+        // 3. Redirect to the frontend with the error
+        return res.redirect(frontendSignInError('google_denied'));
+      }
+
+      // 4. Check if the state is valid
+      if (!code || !state || !storedState || state !== storedState) {
+        // 5. Redirect to the frontend with the error
+        return res.redirect(frontendSignInError('google_invalid_state'));
+      }
+
+      // 6. Login with the Google OAuth code and set the auth cookie
+      const result = await authService.loginWithGoogleCode(code);
+      // 7. Set the auth cookie
+      setAuthCookie(res, result.token);
+      // 8. Redirect to the frontend
+      return res.redirect(`${env.frontendUrl}/`);
+    } catch (error) {
+      if (error instanceof AppError) {
+        // 9. Redirect to the frontend with the error
+        return res.redirect(frontendSignInError('google_auth_failed'));
+      }
       return next(error);
     }
   },

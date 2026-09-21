@@ -11,13 +11,16 @@ import transporter from '@utils/mailer';
 import type {
   AuthResult,
   ForgotPasswordInput,
-  GoogleLoginInput,
   LoginInput,
   RegisterInput,
   ResetPasswordInput,
 } from '@modules/auth/auth.types';
 
-const googleClient = new OAuth2Client(env.googleClientId);
+const googleClient = new OAuth2Client(
+  env.googleClientId,
+  env.googleClientSecret,
+  env.googleRedirectUri,
+);
 
 const buildAuthResult = (user: User): AuthResult => ({
   user: sanitizeUser(user),
@@ -174,15 +177,54 @@ const authService = {
     });
   },
 
-  googleLogin: async (input: GoogleLoginInput): Promise<AuthResult> => {
+  // 1. Generate the Google OAuth URL
+  getGoogleAuthUrl: (state: string): string => {
+    // 1. Check if the Google OAuth is configured
+    if (!env.googleClientId || !env.googleClientSecret) {
+      throw new AppError(500, 'Google OAuth is not configured');
+    }
+
+    // 2. Generate the Google OAuth URL
+    return googleClient.generateAuthUrl({
+      access_type: 'online',
+      prompt: 'select_account',
+      scope: ['openid', 'email', 'profile'],
+      state,
+    });
+  },
+
+  // 2. Login with the Google OAuth code
+  loginWithGoogleCode: async (code: string): Promise<AuthResult> => {
+    // 1. Check if the Google OAuth is configured
+    if (!env.googleClientId || !env.googleClientSecret) {
+      throw new AppError(500, 'Google OAuth is not configured');
+    }
+
+    // 2. Get the ID token
+    let idToken: string | undefined;
+    try {
+      const { tokens } = await googleClient.getToken(code);
+      idToken = tokens.id_token ?? undefined;
+    } catch {
+      throw new AppError(401, 'Google authentication failed');
+    }
+
+    // 3. Check if the ID token is valid
+    if (!idToken) {
+      throw new AppError(401, 'Google authentication failed');
+    }
+
+    // 4. Verify the ID token
     let payload;
     try {
       const ticket = await googleClient.verifyIdToken({
-        idToken: input.credential,
+        idToken,
         audience: env.googleClientId,
       });
+      // 5. Get the payload
       payload = ticket.getPayload();
     } catch {
+      // 6. If the ID token is invalid, throw an error
       throw new AppError(401, 'Google authentication failed');
     }
 
@@ -190,17 +232,21 @@ const authService = {
       throw new AppError(400, 'Invalid Google token');
     }
 
+    // 7. Get the Google ID, email, first name, last name, and avatar
     const googleId = payload.sub;
     const email = payload.email;
     const firstName = payload.given_name || 'User';
     const lastName = payload.family_name || 'Google';
     const avatar = payload.picture || null;
 
+    // 8. Check if the user exists
     let user = await User.findOne({ where: { googleId } });
 
+    // 9. If the user does not exist, check if the user exists with the email
     if (!user) {
       user = await User.findOne({ where: { email } });
 
+      // 10. If the user exists, check if the user is a local user and does not have a Google ID
       if (user) {
         if (user.provider === 'local' && !user.googleId) {
           throw new AppError(
@@ -208,13 +254,16 @@ const authService = {
             'Account exists with email/password. Please login with password.',
           );
         }
+        // 11. Update the user with the Google ID, email verified, and avatar
         await user.update({
           googleId,
           emailVerified: true,
           avatar: user.avatar || avatar,
         });
       } else {
+        // 12. If the user does not exist, create a new user
         const username = await buildUniqueUsername(email);
+        // 13. Create a new user with the Google ID, email, first name, last name, username, email verified, provider, google id, avatar, role, active, and password
         user = await User.create({
           email,
           firstName,

@@ -40,10 +40,6 @@ export type LoginInput = {
   password: string;
 };
 
-export type GoogleLoginInput = {
-  credential: string;
-};
-
 export type ForgotPasswordInput = {
   email: string;
 };

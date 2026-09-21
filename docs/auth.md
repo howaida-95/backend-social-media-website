@@ -3,7 +3,7 @@ Register / Login (email+password)
         │
         ├── JWT → client (Bearer) → auth middleware → protected routes
         │
-Google OAuth ──► verify Google token → find/create user → same JWT
+Google OAuth ──► redirect to Google → code callback → find/create user → same JWT cookie
         │
 Forgot password → email with reset link → Reset password → new hash
 
@@ -28,11 +28,11 @@ Backend
 - SMTP: 
 (Simple Mail Transfer Protocol) is a protocol used for sending emails over the internet.
 SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM
-- Google: GOOGLE_CLIENT_ID (and secret if you use server redirect flow)
+- Google: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
 
 Frontend
 - VITE_API_URL
-- VITE_GOOGLE_CLIENT_ID
+(no VITE_GOOGLE_CLIENT_ID needed for redirect flow)
 ---------------------------------------------------------------------------
 Phase 2 — Custom email/password auth
 => Backend structure
@@ -113,30 +113,38 @@ Mount auth.routes at /api/v1/auth in routes/index.ts / app.ts
 Load JWT_SECRET, JWT_EXPIRES_IN, FRONTEND_URL in env.ts
 Response helper: consistent { data, message } 
 ---------------------------------------------------------------------------
-Phase 3 — Google OAuth (ID-token flow)
-Endpoint
+Phase 3 — Google OAuth (authorization-code redirect flow)
+Endpoints
 
-Method	             Path	        Behavior
-POST          /api/v1/auth/google
-                                        Verify Google ID token → 
-                                        find/create user → same JWT
-                                        Flow
+Method	             Path	                        Behavior
+GET           /api/v1/auth/google
+                                              Set oauth state cookie →
+                                              redirect to Google consent
+GET           /api/v1/auth/google/callback
+                                              Verify state → exchange code
+                                              for tokens → find/create user →
+                                              set httpOnly JWT cookie →
+                                              redirect to FRONTEND_URL
 
-=> Frontend: 
-Google Identity Services / @react-oauth/google → get credential (ID token)
-=> Backend: 
-google-auth-library OAuth2Client.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID })
-Read sub (googleId), email, given_name, family_name, picture
-Find by googleId or email:
-- Exists + google → login
-- Exists + local same email → either link googleId / provider or return clear error 
-(pick one policy)
-- None → create user: provider: 'google', password: null, username from email prefix (ensure unique)
-Sign same JWT → { user, accessToken }
+Flow
+1. React: "Continue with Google" → window.location = `${API}/auth/google`
+2. Backend redirects to Google
+3. User authenticates
+4. Google redirects to /auth/google/callback?code=&state=
+5. Backend exchanges code (needs GOOGLE_CLIENT_SECRET)
+6. Reads ID token (sub, email, name, picture)
+7. Find/create user (same rules as before)
+8. Set httpOnly cookie → redirect to React home
+
+Google Cloud Console
+- Authorized JavaScript origins: http://localhost:5173 (optional for this flow)
+- Authorized redirect URIs:
+  http://localhost:5000/api/v1/auth/google/callback
+
 Deps / env
-
-Backend: google-auth-library, GOOGLE_CLIENT_ID
-Frontend: VITE_GOOGLE_CLIENT_ID
+Backend: google-auth-library, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
+         GOOGLE_REDIRECT_URI, FRONTEND_URL
+Frontend: no VITE_GOOGLE_CLIENT_ID required — just link to backend /auth/google
 ---------------------------------------------------------------------------
 Phase 4 — Forgot / reset password
 Endpoints
@@ -168,10 +176,10 @@ Optionally issue JWT or force re-login
 ---------------------------------------------------------------------------
 Phase 5 — Frontend wiring
 - Env: 
-VITE_API_URL → point at /api/v1 (or prefix paths); 
-VITE_GOOGLE_CLIENT_ID
-- Auth storage: accessToken in localStorage (or memory + refresh later)
-- Axios: attach Authorization: Bearer; on 401 clear token → redirect SignIn
+VITE_API_URL → point at /api/v1 (or prefix paths)
+- Auth storage: httpOnly cookie (withCredentials); no JWT in localStorage
+- Axios: withCredentials: true; on 401 clear user → redirect SignIn
+- Google button: window.location.href = `${VITE_API_URL}/auth/google`
 AuthProvider from your AuthContextValue: login/register/logout/me, user, isAuthenticated
 - Pages: 
 SignIn (real form), 
@@ -180,7 +188,7 @@ ForgotPassword,
 ResetPassword
 - Guards: ProtectedRoute / PublicRoute use real token, not token = true
 - Services: register, login, logout, me, google, forgot, reset
-Google button on SignIn/SignUp → POST /auth/google
+Google button on SignIn/SignUp → navigate to `${VITE_API_URL}/auth/google`
 ---------------------------------------------------------------------------
 Phase 6 — Security & polish
 Rate-limit auth routes (especially login / forgot-password)
@@ -208,5 +216,3 @@ Google OAuth
 Forgot/reset + SMTP
 Rate limits + checklist
 If you want, switch to Agent mode and I can write this straight into docs/auth.md (and/or start Phase 1 in code).
-
-
