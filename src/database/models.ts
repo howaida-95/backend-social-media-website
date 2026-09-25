@@ -11,6 +11,7 @@ import StoryView from '@modules/stories/story-view.model';
 import Message from '@modules/messages/message.model';
 import Notification from '@modules/notifications/notification.model';
 import Upload from '@modules/uploads/uploads.model';
+import RefreshToken from '@modules/auth/refresh-token.model';
 
   /*
 |--------------------------------------------------------------------------
@@ -397,6 +398,22 @@ export const setupAssociations = (): void => {
   User.belongsTo(Upload, {
     foreignKey: 'coverUploadId',
     as: 'coverUpload',
+  });
+
+  /*
+  |--------------------------------------------------------------------------
+  | User ↔ RefreshToken
+  |--------------------------------------------------------------------------
+  */
+  User.hasMany(RefreshToken, {
+    foreignKey: 'userId',
+    as: 'refreshTokens',
+    onDelete: 'CASCADE',
+  });
+
+  RefreshToken.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user',
   });
 };
 

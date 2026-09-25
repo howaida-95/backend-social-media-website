@@ -1,63 +1,95 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { CookieOptions, Response } from 'express';
 import { env } from '@config/env';
+import { parseDurationToMs } from '@utils/duration';
 import type { AuthJwtPayload } from '@modules/auth/auth.types';
 
-const COOKIE_NAME = 'token';
+/** Short-lived access JWT cookie */
+export const ACCESS_COOKIE_NAME = 'token';
+/** Long-lived opaque refresh token cookie */
+export const REFRESH_COOKIE_NAME = 'refresh_token';
 
-// signToken is used to sign the token for the user
-export const signToken = (userId: number, role: string): string => {
+/** @deprecated use ACCESS_COOKIE_NAME */
+export const COOKIE_NAME = ACCESS_COOKIE_NAME;
+
+export { parseDurationToMs };
+
+/** @deprecated use parseDurationToMs */
+export const parseJwtCookieMaxAgeMs = parseDurationToMs;
+
+export const signAccessToken = (userId: number, role: string): string => {
   return jwt.sign({ userId, role }, env.jwtSecret, {
     expiresIn: env.jwtExpiresIn,
   } as jwt.SignOptions);
 };
 
-// verifyToken is used to verify the token for the user
-export const verifyToken = (token: string): AuthJwtPayload => {
+/** @deprecated use signAccessToken */
+export const signToken = signAccessToken;
+
+export const verifyAccessToken = (token: string): AuthJwtPayload => {
   return jwt.verify(token, env.jwtSecret) as AuthJwtPayload;
 };
 
-// getAuthCookieOptions is used to get the cookie options for the user
-export const getAuthCookieOptions = (): CookieOptions => ({
+/** @deprecated use verifyAccessToken */
+export const verifyToken = verifyAccessToken;
+
+/** ISO expiry from JWT `exp` (httpOnly access cookie is not readable by JS). */
+export const getAccessTokenExpiresAtIso = (accessToken: string): string => {
+  const decoded = jwt.decode(accessToken) as AuthJwtPayload | null;
+  if (decoded?.exp) {
+    return new Date(decoded.exp * 1000).toISOString();
+  }
+  return new Date(Date.now() + env.jwtCookieMaxAgeMs).toISOString();
+};
+
+export const createRefreshTokenValue = (): string =>
+  crypto.randomBytes(48).toString('hex');
+
+/**
+ * Hash a refresh token
+ * @param rawToken - The raw refresh token
+ * @returns The hashed refresh token
+ hashRefreshToken turns the raw refresh token into a SHA-256 hex string before it touches the database.
+ */
+export const hashRefreshToken = (rawToken: string): string =>
+  crypto.createHash('sha256').update(rawToken).digest('hex');
+
+const baseCookieOptions = (): CookieOptions => ({
   httpOnly: true,
   secure: env.nodeEnv === 'production',
   sameSite: 'lax',
+  path: '/',
+});
+
+export const getAccessCookieOptions = (): CookieOptions => ({
+  ...baseCookieOptions(),
   maxAge: env.jwtCookieMaxAgeMs,
 });
 
-// setAuthCookie is used to set the cookie for the user
+export const getRefreshCookieOptions = (): CookieOptions => ({
+  ...baseCookieOptions(),
+  maxAge: env.refreshTokenCookieMaxAgeMs,
+});
+
+export const setAuthCookies = (
+  res: Response,
+  accessToken: string,
+  refreshToken: string,
+): void => {
+  res.cookie(ACCESS_COOKIE_NAME, accessToken, getAccessCookieOptions());
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+};
+
+/** @deprecated use setAuthCookies */
 export const setAuthCookie = (res: Response, token: string): void => {
-  res.cookie(COOKIE_NAME, token, getAuthCookieOptions());
+  res.cookie(ACCESS_COOKIE_NAME, token, getAccessCookieOptions());
 };
 
-// clearAuthCookie is used to clear the cookie for the user
-export const clearAuthCookie = (res: Response): void => {
-  res.clearCookie(COOKIE_NAME, getAuthCookieOptions());
+export const clearAuthCookies = (res: Response): void => {
+  res.clearCookie(ACCESS_COOKIE_NAME, getAccessCookieOptions());
+  res.clearCookie(REFRESH_COOKIE_NAME, getRefreshCookieOptions());
 };
 
-/*
-It converts JWT_EXPIRES_IN (e.g. "1h") into milliseconds for the auth cookie’s maxAge.
-we use one env vlue in 1h format 
-But two libraries need different formats:
-jwt.sign(..., { expiresIn }) => "1h"
-res.cookie(..., { maxAge }) ==> 3600000 (ms)
-*/
-
-export const parseJwtCookieMaxAgeMs = (expiresIn: string): number => {
-  const match = /^(\d+)([smhd])$/i.exec(expiresIn.trim());
-  if (!match) {
-    return 60 * 60 * 1000;
-  }
-
-  const value = Number(match[1]);
-  const unit = match[2].toLowerCase();
-  const multipliers: Record<string, number> = {
-    s: 1000,
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
-    d: 24 * 60 * 60 * 1000,
-  };
-
-  return value * (multipliers[unit] || 60 * 60 * 1000);
-};
-export { COOKIE_NAME };
+/** @deprecated use clearAuthCookies */
+export const clearAuthCookie = clearAuthCookies;

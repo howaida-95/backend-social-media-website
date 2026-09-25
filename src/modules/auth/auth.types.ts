@@ -22,9 +22,17 @@ export type PublicUser = {
   updatedAt: Date;
 };
 
+export type SessionMeta = {
+  userAgent?: string | null;
+  ipAddress?: string | null;
+};
+
 export type AuthResult = {
   user: PublicUser;
-  token: string;
+  accessToken: string;
+  refreshToken: string;
+  /** ISO timestamp of access JWT expiry — for proactive frontend refresh */
+  accessTokenExpiresAt: string;
 };
 
 export type RegisterInput = {

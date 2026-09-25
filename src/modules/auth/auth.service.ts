@@ -2,10 +2,17 @@ import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { Op } from 'sequelize';
 import User from '@modules/users/user.model';
+import RefreshToken from '@modules/auth/refresh-token.model';
 import { env } from '@config/env';
 import { AppError } from '@utils/AppError';
 import { comparePassword, hashPassword } from '@utils/password';
-import { signToken, verifyToken } from '@utils/jwt';
+import {
+  createRefreshTokenValue,
+  getAccessTokenExpiresAtIso,
+  hashRefreshToken,
+  parseDurationToMs,
+  signAccessToken,
+} from '@utils/jwt';
 import { sanitizeUser } from '@utils/sanitizeUser';
 import transporter from '@utils/mailer';
 import type {
@@ -14,6 +21,7 @@ import type {
   LoginInput,
   RegisterInput,
   ResetPasswordInput,
+  SessionMeta,
 } from '@modules/auth/auth.types';
 
 const googleClient = new OAuth2Client(
@@ -22,10 +30,48 @@ const googleClient = new OAuth2Client(
   env.googleRedirectUri,
 );
 
-const buildAuthResult = (user: User): AuthResult => ({
-  user: sanitizeUser(user),
-  token: signToken(user.id, user.role),
-});
+const createSession = async (
+  user: User,
+  meta: SessionMeta = {},
+): Promise<AuthResult> => {
+  const accessToken = signAccessToken(user.id, user.role);
+  const refreshToken = createRefreshTokenValue();
+  const tokenHash = hashRefreshToken(refreshToken);
+
+  await RefreshToken.create({
+    userId: user.id,
+    tokenHash,
+    expiresAt: new Date(Date.now() + parseDurationToMs(env.refreshTokenExpiresIn)),
+    revokedAt: null,
+    replacedByTokenHash: null, 
+    userAgent: meta.userAgent ?? null,
+    ipAddress: meta.ipAddress ?? null, 
+  });
+
+  return {
+    user: sanitizeUser(user),
+    accessToken,
+    refreshToken,
+    accessTokenExpiresAt: getAccessTokenExpiresAtIso(accessToken),
+  };
+};
+
+/* 
+ * Revoke all refresh tokens for a user
+ * @param userId - The ID of the user
+ * @returns void
+ */
+const revokeAllUserRefreshTokens = async (userId: number): Promise<void> => {
+  await RefreshToken.update(
+    { revokedAt: new Date() },
+    {
+      where: {
+        userId,
+        revokedAt: null,
+      },
+    },
+  );
+};
 
 const buildUniqueUsername = async (email: string): Promise<string> => {
   const base =
@@ -57,7 +103,10 @@ const sendResetEmail = async (email: string, resetToken: string) => {
 };
 
 const authService = {
-  register: async (input: RegisterInput): Promise<AuthResult> => {
+  register: async (
+    input: RegisterInput,
+    meta?: SessionMeta,
+  ): Promise<AuthResult> => {
     const existingEmail = await User.findOne({ where: { email: input.email } });
     if (existingEmail) {
       throw new AppError(409, 'Email already in use');
@@ -83,10 +132,10 @@ const authService = {
       isActive: true,
     });
 
-    return buildAuthResult(user);
+    return createSession(user, meta);
   },
 
-  login: async (input: LoginInput): Promise<AuthResult> => {
+  login: async (input: LoginInput, meta?: SessionMeta): Promise<AuthResult> => {
     const user = await User.findOne({ where: { email: input.email } });
     if (!user || !user.password || user.provider !== 'local') {
       throw new AppError(401, 'Invalid email or password');
@@ -101,27 +150,85 @@ const authService = {
       throw new AppError(403, 'Account is inactive');
     }
 
-    return buildAuthResult(user);
+    return createSession(user, meta);
   },
 
-  refreshToken: async (token: string): Promise<AuthResult> => {
-    let decoded;
-    try {
-      decoded = verifyToken(token);
-    } catch {
+  /**
+   * Rotate refresh token: validate opaque cookie value, revoke old row,
+   * issue new access + refresh pair. Reuse of a revoked token revokes all sessions.
+   */
+  refreshToken: async (
+    rawRefreshToken: string,
+    meta?: SessionMeta,
+  ): Promise<AuthResult> => {
+    // Validate the refresh token
+    const tokenHash = hashRefreshToken(rawRefreshToken);
+    // Find the refresh token in the database
+    const stored = await RefreshToken.findOne({ where: { tokenHash } });
+
+    if (!stored) {
       throw new AppError(401, 'Unauthorized');
     }
 
-    if (!decoded.userId) {
+    // If the token is revoked, revoke all the user's refresh tokens
+    if (stored.revokedAt) {
+      await revokeAllUserRefreshTokens(stored.userId);
       throw new AppError(401, 'Unauthorized');
     }
 
-    const user = await User.findByPk(decoded.userId);
+    // If the token is expired, revoke the token
+    if (stored.expiresAt.getTime() <= Date.now()) {
+      await stored.update({ revokedAt: new Date() });
+      throw new AppError(401, 'Unauthorized');
+    }
+
+    // If the user is not active, revoke the token
+    const user = await User.findByPk(stored.userId);
     if (!user || !user.isActive) {
+      await stored.update({ revokedAt: new Date() });
       throw new AppError(401, 'Unauthorized');
     }
+    // Create a new refresh token
+    const nextRefreshToken = createRefreshTokenValue();
+    // Hash the new refresh token
+    const nextHash = hashRefreshToken(nextRefreshToken);
 
-    return buildAuthResult(user);
+    await stored.update({
+      revokedAt: new Date(),
+      replacedByTokenHash: nextHash,
+    });
+
+    // Create a new refresh token in the database
+    await RefreshToken.create({
+      userId: user.id,
+      tokenHash: nextHash,
+      expiresAt: new Date(Date.now() + parseDurationToMs(env.refreshTokenExpiresIn)),
+      revokedAt: null,
+      replacedByTokenHash: null,
+      userAgent: meta?.userAgent ?? stored.userAgent,
+      ipAddress: meta?.ipAddress ?? stored.ipAddress,
+    });
+
+    const accessToken = signAccessToken(user.id, user.role);
+
+    return {
+      user: sanitizeUser(user),
+      accessToken,
+      refreshToken: nextRefreshToken,
+      accessTokenExpiresAt: getAccessTokenExpiresAtIso(accessToken),
+    };
+  },
+
+  logout: async (rawRefreshToken?: string): Promise<void> => {
+    if (!rawRefreshToken) {
+      return;
+    }
+
+    const tokenHash = hashRefreshToken(rawRefreshToken);
+    const stored = await RefreshToken.findOne({ where: { tokenHash } });
+    if (stored && !stored.revokedAt) {
+      await stored.update({ revokedAt: new Date() });
+    }
   },
 
   me: async (user: User) => {
@@ -169,22 +276,32 @@ const authService = {
       throw new AppError(400, 'Invalid or expired reset token');
     }
 
+    if (user.password) {
+      const isSamePassword = await comparePassword(input.password, user.password);
+      if (isSamePassword) {
+        throw new AppError(
+          400,
+          'New password must be different from your current password',
+        );
+      }
+    }
+
     const hashedPassword = await hashPassword(input.password);
     await user.update({
       password: hashedPassword,
       resetPasswordToken: null,
       resetPasswordExpires: null,
     });
+
+    // Invalidate all sessions after password reset
+    await revokeAllUserRefreshTokens(user.id);
   },
 
-  // 1. Generate the Google OAuth URL
   getGoogleAuthUrl: (state: string): string => {
-    // 1. Check if the Google OAuth is configured
     if (!env.googleClientId || !env.googleClientSecret) {
       throw new AppError(500, 'Google OAuth is not configured');
     }
 
-    // 2. Generate the Google OAuth URL
     return googleClient.generateAuthUrl({
       access_type: 'online',
       prompt: 'select_account',
@@ -193,14 +310,14 @@ const authService = {
     });
   },
 
-  // 2. Login with the Google OAuth code
-  loginWithGoogleCode: async (code: string): Promise<AuthResult> => {
-    // 1. Check if the Google OAuth is configured
+  loginWithGoogleCode: async (
+    code: string,
+    meta?: SessionMeta,
+  ): Promise<AuthResult> => {
     if (!env.googleClientId || !env.googleClientSecret) {
       throw new AppError(500, 'Google OAuth is not configured');
     }
 
-    // 2. Get the ID token
     let idToken: string | undefined;
     try {
       const { tokens } = await googleClient.getToken(code);
@@ -209,22 +326,18 @@ const authService = {
       throw new AppError(401, 'Google authentication failed');
     }
 
-    // 3. Check if the ID token is valid
     if (!idToken) {
       throw new AppError(401, 'Google authentication failed');
     }
 
-    // 4. Verify the ID token
     let payload;
     try {
       const ticket = await googleClient.verifyIdToken({
         idToken,
         audience: env.googleClientId,
       });
-      // 5. Get the payload
       payload = ticket.getPayload();
     } catch {
-      // 6. If the ID token is invalid, throw an error
       throw new AppError(401, 'Google authentication failed');
     }
 
@@ -232,21 +345,17 @@ const authService = {
       throw new AppError(400, 'Invalid Google token');
     }
 
-    // 7. Get the Google ID, email, first name, last name, and avatar
     const googleId = payload.sub;
     const email = payload.email;
     const firstName = payload.given_name || 'User';
     const lastName = payload.family_name || 'Google';
     const avatar = payload.picture || null;
 
-    // 8. Check if the user exists
     let user = await User.findOne({ where: { googleId } });
 
-    // 9. If the user does not exist, check if the user exists with the email
     if (!user) {
       user = await User.findOne({ where: { email } });
 
-      // 10. If the user exists, check if the user is a local user and does not have a Google ID
       if (user) {
         if (user.provider === 'local' && !user.googleId) {
           throw new AppError(
@@ -254,16 +363,13 @@ const authService = {
             'Account exists with email/password. Please login with password.',
           );
         }
-        // 11. Update the user with the Google ID, email verified, and avatar
         await user.update({
           googleId,
           emailVerified: true,
           avatar: user.avatar || avatar,
         });
       } else {
-        // 12. If the user does not exist, create a new user
         const username = await buildUniqueUsername(email);
-        // 13. Create a new user with the Google ID, email, first name, last name, username, email verified, provider, google id, avatar, role, active, and password
         user = await User.create({
           email,
           firstName,
@@ -284,7 +390,7 @@ const authService = {
       throw new AppError(403, 'Account is inactive');
     }
 
-    return buildAuthResult(user);
+    return createSession(user, meta);
   },
 };
 
