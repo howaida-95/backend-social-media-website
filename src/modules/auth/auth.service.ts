@@ -23,6 +23,11 @@ import type {
   ResetPasswordInput,
   SessionMeta,
 } from '@modules/auth/auth.types';
+import {
+  getPasswordResetRetryAfter,
+  markPasswordResetRequested,
+  PASSWORD_RESET_COOLDOWN_SECONDS,
+} from '@modules/auth/password-reset-cooldown';
 
 const googleClient = new OAuth2Client(
   env.googleClientId,
@@ -37,7 +42,7 @@ const createSession = async (
   const accessToken = signAccessToken(user.id, user.role);
   const refreshToken = createRefreshTokenValue();
   const tokenHash = hashRefreshToken(refreshToken);
-
+  
   await RefreshToken.create({
     userId: user.id,
     tokenHash,
@@ -224,8 +229,11 @@ const authService = {
       return;
     }
 
+    // Hash the refresh token
     const tokenHash = hashRefreshToken(rawRefreshToken);
+    // Find the refresh token in the database
     const stored = await RefreshToken.findOne({ where: { tokenHash } });
+    //  The backend reads that cookie to know which DB session to revoke.
     if (stored && !stored.revokedAt) {
       await stored.update({ revokedAt: new Date() });
     }
@@ -235,7 +243,22 @@ const authService = {
     return sanitizeUser(user);
   },
 
-  forgotPassword: async (input: ForgotPasswordInput): Promise<void> => {
+  forgotPassword: async (
+    input: ForgotPasswordInput,
+  ): Promise<{ retryAfter: number }> => {
+    // Enforce per-email cooldown before lookup so timing does not leak existence
+    const retryAfter = getPasswordResetRetryAfter(input.email);
+    if (retryAfter > 0) {
+      throw new AppError(
+        429,
+        'Please wait before requesting another reset email.',
+        { retryAfter },
+      );
+    }
+
+    // Record immediately so unknown emails share the same cooldown behavior
+    markPasswordResetRequested(input.email);
+
     const user = await User.findOne({
       where: {
         email: input.email,
@@ -245,7 +268,7 @@ const authService = {
 
     // Always succeed to avoid email enumeration
     if (!user || !user.password) {
-      return;
+      return { retryAfter: PASSWORD_RESET_COOLDOWN_SECONDS };
     }
 
     const rawToken = crypto.randomBytes(32).toString('hex');
@@ -257,6 +280,8 @@ const authService = {
     });
 
     await sendResetEmail(user.email, rawToken);
+
+    return { retryAfter: PASSWORD_RESET_COOLDOWN_SECONDS };
   },
 
   resetPassword: async (input: ResetPasswordInput): Promise<void> => {

@@ -57,7 +57,11 @@ const authController = {
       return next(error);
     }
   },
-
+/*
+logout does two things:
+  Revoke — hash the cookie → mark that row revokedAt in the DB
+  Clear cookies — remove token + refresh_token from the browser
+*/
   logout: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
@@ -71,16 +75,19 @@ const authController = {
 
   refreshToken: async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // Get the refresh token from the request
       const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] as string | undefined;
+      // If the refresh token is not found, throw an error
       if (!refreshToken) {
         throw new AppError(401, 'Unauthorized');
       }
-
+      // Refresh the token by calling the authService.refreshToken method
       const result = await authService.refreshToken(
         refreshToken,
         // Get the session meta from the request ex: user agent, ip address, etc.
         getSessionMeta(req),
       );
+      // Set the new tokens in the cookies
       setAuthCookies(res, result.accessToken, result.refreshToken);
       return res.status(200).json({
         message: 'Token refreshed',
@@ -113,9 +120,10 @@ const authController = {
 
   forgotPassword: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await authService.forgotPassword(req.body);
+      const result = await authService.forgotPassword(req.body);
       return res.status(200).json({
         message: 'If that email exists, a reset link has been sent',
+        retryAfter: result.retryAfter,
       });
     } catch (error) {
       return next(error);

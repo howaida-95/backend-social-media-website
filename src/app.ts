@@ -63,9 +63,16 @@ app.use(
     _next: express.NextFunction,
   ) => {
     if (err instanceof AppError) {
+      if (typeof err.details.retryAfter === 'number') {
+        res.setHeader('Retry-After', String(err.details.retryAfter));
+      }
+
       return res.status(err.statusCode).json({
         success: false,
         message: err.message,
+        ...(typeof err.details.retryAfter === 'number'
+          ? { retryAfter: err.details.retryAfter }
+          : {}),
       });
     }
 
