@@ -7,6 +7,7 @@ import {
 } from 'sequelize';
 
 import { sequelize } from '@config/database';
+import { MAX_IMAGE_SIZE } from '@modules/uploads/uploads.constants';
 
 export type UploadPurpose = 'avatar' | 'cover' | 'post' | 'story' | 'message';
 export type UploadResourceType = 'image' | 'video';
@@ -52,11 +53,11 @@ Upload.init(
     userId: {
       type: DataTypes.INTEGER.UNSIGNED, // means the value cannot be negative.
       allowNull: false, // means the value is required, Every upload must belong to a user.
-/*
-  This creates a foreign key.
-  It tells MySQL:
-  uploads.user_id must reference an existing users.id.
-*/      
+    /*
+      This creates a foreign key.
+      It tells MySQL:
+      uploads.user_id must reference an existing users.id.
+    */      
       references: {
         model: 'users', // references the users table
         key: 'id', // references the id column in the users table
@@ -116,14 +117,14 @@ For example, you can check if the file is an image or a video.
 /*
 This is the size of the uploaded file, usually in bytes.
 minimum = 1 byte
-maximum = 10 MB
+maximum = 5 MB
 */
     size: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       validate: {
         min: 1,
-        max: 10 * 1024 * 1024,
+        max: MAX_IMAGE_SIZE,
       },
     },
 /*
@@ -267,6 +268,6 @@ underscored: true -> means the column names in the database are snake_case.
         └─────────────────────────────┘
 
         Ownership lives on the parent:
-        posts.upload_id · stories.upload_id · messages.upload_id
+        post_images.upload_id · stories.upload_id · messages.upload_id
         users.avatar_upload_id · users.cover_upload_id
 */

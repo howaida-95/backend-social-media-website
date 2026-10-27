@@ -2,6 +2,7 @@
 
 import User from '@modules/users/user.model';
 import Post from '@modules/posts/post.model';
+import PostImage from '@modules/posts/post-image.model';
 import Comment from '@modules/comments/comment.model';
 import Like from '@modules/likes/like.model.js';
 import Connection from '@modules/connections/connection.model';
@@ -352,22 +353,31 @@ export const setupAssociations = (): void => {
 
   /*
   |--------------------------------------------------------------------------
-  | Upload ownership (parent holds uploadId)
+  | Upload ownership
   |--------------------------------------------------------------------------
   |
   | purpose  → why the file was uploaded (validation, quotas, storage path)
-  | uploadId → which entity owns the file (on Post, Story, Message, User)
+  | Join rows associate post images; other entities hold uploadId directly.
   |
   */
 
-  Post.belongsTo(Upload, {
+  Post.hasMany(PostImage, {
+    foreignKey: 'postId',
+    as: 'postImages',
+    onDelete: 'CASCADE',
+  });
+  PostImage.belongsTo(Post, {
+    foreignKey: 'postId',
+    as: 'post',
+  });
+  PostImage.belongsTo(Upload, {
     foreignKey: 'uploadId',
     as: 'upload',
   });
-
-  Upload.hasOne(Post, {
+  Upload.hasMany(PostImage, {
     foreignKey: 'uploadId',
-    as: 'post',
+    as: 'postImages',
+    onDelete: 'CASCADE',
   });
 
   Story.belongsTo(Upload, {

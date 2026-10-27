@@ -130,3 +130,24 @@ So don't think:
 "The model creates my database."
 Instead:
 Migration defines and changes the database schema, while the Sequelize model represents that schema inside the application.
+
+
+importance of associations:
+There are two separate concepts:
+
+Database relationship
+        ↓
+Foreign Key
+        ↓
+MySQL knows Post.user_id → users.id
+
+
+ORM relationship
+        ↓
+Sequelize Association
+        ↓
+Sequelize knows Post.belongsTo(User)
+without associations you can't use include or some sequalized models like: 
+user.getPosts();
+user.createPost();
+user.addPost();

@@ -9,13 +9,16 @@ It is responsible for
 - exporting the app for the server.
 */
 
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import cookieParser from 'cookie-parser';
-import authRoutes from '@modules/auth/auth.routes';
-import { env } from '@config/env';
-import { AppError } from '@utils/AppError';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import path from "path";
+import authRoutes from "@modules/auth/auth.routes";
+import postRoutes from "@modules/posts/post.routes";
+import uploadRoutes from "@modules/uploads/uploads.routes";
+import { env } from "@config/env";
+import { AppError } from "@utils/AppError";
 
 const app = express();
 
@@ -34,23 +37,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // cookieParser is used to parse the request body as cookies
 app.use(cookieParser());
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // health check route
-app.get('/api/health', (_req, res) => {
+app.get("/api/health", (_req, res) => {
   res.status(200).json({
     success: true,
-    message: 'API is running',
+    message: "API is running",
   });
 });
 
 // auth routes
-app.use('/api/v1/auth', authRoutes);
+app.use("/api/v1/auth", authRoutes);
+// posts and feed routes
+app.use("/api/v1", postRoutes);
+app.use("/api/v1/uploads", uploadRoutes);
 
 // 404 route
 app.use((_req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found',
+    message: "Route not found",
   });
 });
 
@@ -63,14 +70,14 @@ app.use(
     _next: express.NextFunction,
   ) => {
     if (err instanceof AppError) {
-      if (typeof err.details.retryAfter === 'number') {
-        res.setHeader('Retry-After', String(err.details.retryAfter));
+      if (typeof err.details.retryAfter === "number") {
+        res.setHeader("Retry-After", String(err.details.retryAfter));
       }
 
       return res.status(err.statusCode).json({
         success: false,
         message: err.message,
-        ...(typeof err.details.retryAfter === 'number'
+        ...(typeof err.details.retryAfter === "number"
           ? { retryAfter: err.details.retryAfter }
           : {}),
       });
@@ -79,7 +86,7 @@ app.use(
     console.error(err);
     return res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: "Internal server error",
     });
   },
 );

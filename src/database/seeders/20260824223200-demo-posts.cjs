@@ -1,5 +1,7 @@
 'use strict';
 
+const { QueryTypes } = require('sequelize');
+
 const {
   DEMO_USER_EMAILS,
   SEED_PUBLIC_IDS,
@@ -24,8 +26,6 @@ module.exports = {
       {
         user_id: userIdByEmail['alice@pingup.dev'],
         content: 'Hello PingUp! Excited to share my first post here.',
-        image_url: null,
-        upload_id: null,
         created_at: now,
         updated_at: now,
         deleted_at: null,
@@ -33,8 +33,6 @@ module.exports = {
       {
         user_id: userIdByEmail['bob@pingup.dev'],
         content: 'Golden hour shot from the weekend. No filter needed.',
-        image_url: postBobUpload?.url ?? null,
-        upload_id: postBobUpload?.id ?? null,
         created_at: now,
         updated_at: now,
         deleted_at: null,
@@ -42,8 +40,6 @@ module.exports = {
       {
         user_id: userIdByEmail['carol@pingup.dev'],
         content: 'Working on a new UI kit. Feedback welcome!',
-        image_url: null,
-        upload_id: null,
         created_at: now,
         updated_at: now,
         deleted_at: null,
@@ -51,13 +47,38 @@ module.exports = {
       {
         user_id: userIdByEmail['alice@pingup.dev'],
         content: 'Second post — loving this community already.',
-        image_url: null,
-        upload_id: null,
         created_at: now,
         updated_at: now,
         deleted_at: null,
       },
     ]);
+
+    if (postBobUpload) {
+      const [bobPost] = await queryInterface.sequelize.query(
+        `SELECT id FROM posts
+         WHERE user_id = :userId AND content = :content
+         ORDER BY id DESC LIMIT 1`,
+        {
+          replacements: {
+            userId: userIdByEmail['bob@pingup.dev'],
+            content: 'Golden hour shot from the weekend. No filter needed.',
+          },
+          type: QueryTypes.SELECT,
+        },
+      );
+
+      if (!bobPost) {
+        throw new Error('Could not find the seeded Bob post to attach its upload');
+      }
+
+      await queryInterface.bulkInsert('post_images', [
+        {
+          post_id: bobPost.id,
+          upload_id: postBobUpload.id,
+          position: 0,
+        },
+      ]);
+    }
   },
 
   async down(queryInterface, Sequelize) {

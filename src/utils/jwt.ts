@@ -10,29 +10,28 @@ export const ACCESS_COOKIE_NAME = 'token';
 /** Long-lived opaque refresh token cookie */
 export const REFRESH_COOKIE_NAME = 'refresh_token';
 
-/** @deprecated use ACCESS_COOKIE_NAME */
-export const COOKIE_NAME = ACCESS_COOKIE_NAME;
-
 export { parseDurationToMs };
 
-/** @deprecated use parseDurationToMs */
-export const parseJwtCookieMaxAgeMs = parseDurationToMs;
+const JWT_ALGORITHM: jwt.Algorithm = 'HS256';
 
+// Sign and verify JWTs for access tokens, and create/verify refresh tokens.
 export const signAccessToken = (userId: number, role: string): string => {
   return jwt.sign({ userId, role }, env.jwtSecret, {
+    algorithm: JWT_ALGORITHM,
     expiresIn: env.jwtExpiresIn,
   } as jwt.SignOptions);
 };
 
-/** @deprecated use signAccessToken */
-export const signToken = signAccessToken;
-
+// Verify the access token and return the decoded payload, or throw an error if invalid.
 export const verifyAccessToken = (token: string): AuthJwtPayload => {
-  return jwt.verify(token, env.jwtSecret) as AuthJwtPayload;
+  const decoded = jwt.verify(token, env.jwtSecret, {
+    algorithms: [JWT_ALGORITHM],
+  });
+  if (typeof decoded === 'string') {
+    throw new jwt.JsonWebTokenError('Invalid token payload');
+  }
+  return decoded as AuthJwtPayload;
 };
-
-/** @deprecated use verifyAccessToken */
-export const verifyToken = verifyAccessToken;
 
 /** ISO expiry from JWT `exp` (httpOnly access cookie is not readable by JS). */
 export const getAccessTokenExpiresAtIso = (accessToken: string): string => {
@@ -47,10 +46,9 @@ export const createRefreshTokenValue = (): string =>
   crypto.randomBytes(48).toString('hex');
 
 /**
- * Hash a refresh token
+ * Hash a refresh token with SHA-256 so the raw value never touches the database.
  * @param rawToken - The raw refresh token
- * @returns The hashed refresh token
- hashRefreshToken turns the raw refresh token into a SHA-256 hex string before it touches the database.
+ * @returns The hex-encoded SHA-256 hash
  */
 export const hashRefreshToken = (rawToken: string): string =>
   crypto.createHash('sha256').update(rawToken).digest('hex');
@@ -81,15 +79,10 @@ export const setAuthCookies = (
   res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
 };
 
-/** @deprecated use setAuthCookies */
-export const setAuthCookie = (res: Response, token: string): void => {
-  res.cookie(ACCESS_COOKIE_NAME, token, getAccessCookieOptions());
-};
-
 export const clearAuthCookies = (res: Response): void => {
-  res.clearCookie(ACCESS_COOKIE_NAME, getAccessCookieOptions());
-  res.clearCookie(REFRESH_COOKIE_NAME, getRefreshCookieOptions());
+  // Don't pass maxAge/expires to clearCookie: Express 5 ignores them,
+  // Express 4 deprecates them. Path/flags must still match the originals.
+  const options = baseCookieOptions();
+  res.clearCookie(ACCESS_COOKIE_NAME, options);
+  res.clearCookie(REFRESH_COOKIE_NAME, options);
 };
-
-/** @deprecated use clearAuthCookies */
-export const clearAuthCookie = clearAuthCookies;

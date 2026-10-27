@@ -4,19 +4,16 @@ import {
   InferAttributes,
   InferCreationAttributes,
   Model,
-} from 'sequelize';
+} from "sequelize";
 
-import { sequelize } from '@config/database';
+import { sequelize } from "@config/database";
 
-class Post extends Model <InferAttributes<Post>,InferCreationAttributes<Post>> {
+class Post extends Model<InferAttributes<Post>, InferCreationAttributes<Post>> {
   declare id: CreationOptional<number>;
 
   declare userId: number;
 
   declare content: string | null;
-
-  declare imageUrl: string | null;
-  declare uploadId: number | null;
 
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -35,12 +32,12 @@ Post.init(
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: {
-        model: 'users',
-        key: 'id',
+        model: "users",
+        key: "id",
       },
-      onUpdate: 'CASCADE',
-      onDelete: 'CASCADE',
-      field: 'user_id',
+      onUpdate: "CASCADE",
+      onDelete: "CASCADE",
+      field: "user_id",
     },
 
     content: {
@@ -51,66 +48,41 @@ Post.init(
       },
     },
 
-    imageUrl: {
-      type: DataTypes.STRING(500),
-      allowNull: true,
-      field: 'image_url',
-      validate: {
-        isUrl: true,
-      },
-    },
-
-    uploadId: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: true,
-      references: {
-        model: 'uploads',
-        key: 'id',
-      },
-      onUpdate: 'CASCADE',
-      onDelete: 'SET NULL',
-      field: 'upload_id',
-    },
-
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      field: 'created_at',
+      field: "created_at",
     },
 
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      field: 'updated_at',
+      field: "updated_at",
     },
 
     deletedAt: {
       type: DataTypes.DATE,
       allowNull: true,
-      field: 'deleted_at',
+      field: "deleted_at",
     },
   },
   {
     sequelize,
-    tableName: 'posts',
-    modelName: 'Post',
+    tableName: "posts",
+    modelName: "Post",
     timestamps: true,
     underscored: true,
     paranoid: true,
 
     indexes: [
       {
-        fields: ['user_id'],
+        fields: ["user_id"],
       },
       {
-        fields: ['created_at'],
+        fields: ["created_at"],
       },
       {
-        fields: ['user_id', 'created_at'],
-      },
-      {
-        unique: true,
-        fields: ['upload_id'],
+        fields: ["user_id", "created_at"],
       },
     ],
   },

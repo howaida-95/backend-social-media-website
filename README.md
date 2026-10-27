@@ -370,6 +370,7 @@ Example:
 ```env
 NODE_ENV=development
 PORT=5000
+BACKEND_PUBLIC_URL=http://localhost:5000
 
 DATABASE_HOST=localhost
 DATABASE_PORT=3306
@@ -388,6 +389,8 @@ CLOUDINARY_API_SECRET=
 Never commit `.env` to Git.
 
 Use `.env.example` to document required environment variables without exposing secrets.
+In production, set `BACKEND_PUBLIC_URL` to the public backend origin (for example,
+`https://api.example.com`) so uploaded-file URLs point to the deployed server.
 
 ---
 
@@ -774,4 +777,3 @@ The goal is not only to make the application work, but to understand **why each 
 **Status:** 🚧 In Development
 
 This project is being built incrementally, starting with the backend foundation and progressing toward a complete social networking API.
-

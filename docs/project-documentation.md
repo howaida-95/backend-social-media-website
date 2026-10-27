@@ -226,7 +226,7 @@ Associations live in **one place**: `src/database/models.ts`.
 Profile tabs:
 
 - **Posts** → user’s posts
-- **Media** → posts with `imageUrl`
+- **Media** → posts with uploaded media
 - **Likes** → posts liked by user
 
 ### 5.3 Posts & Feed
@@ -237,7 +237,7 @@ Profile tabs:
 |---|---|
 | `userId` | FK → users |
 | `content` | text (optional) |
-| `imageUrl` | media URL (optional) |
+| `uploadIds` | uploaded media IDs (optional) |
 
 Engagement (UI counters):
 
@@ -314,7 +314,7 @@ Backend needs search endpoints that filter users (and exclude self / already fol
 |---|---|
 | `senderId` / `receiverId` | participants |
 | `text` | message body |
-| `imageUrl` | optional attachment |
+| `uploadId` | optional uploaded attachment |
 | `isRead` | read receipt |
 
 Real-time delivery via **Socket.IO**; persistence via REST + MySQL.
@@ -491,6 +491,7 @@ Errors:
 ```env
 NODE_ENV=development
 PORT=5000
+BACKEND_PUBLIC_URL=http://localhost:5000
 FRONTEND_URL=http://localhost:5173
 
 DATABASE_HOST=localhost
@@ -506,6 +507,9 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 ```
+
+In production, set `BACKEND_PUBLIC_URL` to the public backend origin (for example,
+`https://api.example.com`). The server requires this variable when `NODE_ENV=production`.
 
 ---
 

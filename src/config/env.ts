@@ -8,10 +8,28 @@ import { parseDurationToMs } from '@utils/duration';
 
 const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '15m';
 const refreshTokenExpiresIn = process.env.REFRESH_TOKEN_EXPIRES_IN || '30d';
+const nodeEnv = process.env.NODE_ENV || 'development';
+const port = Number(process.env.PORT) || 5000;
+const backendPublicUrl = (
+  process.env.BACKEND_PUBLIC_URL ||
+  (nodeEnv !== 'production' ? `http://localhost:${port}` : '')
+)
+  .trim()
+  .replace(/\/+$/, '');
+
+if (!backendPublicUrl) {
+  throw new Error('BACKEND_PUBLIC_URL must be set in production');
+}
+
+const parsedBackendPublicUrl = new URL(backendPublicUrl);
+if (!['http:', 'https:'].includes(parsedBackendPublicUrl.protocol)) {
+  throw new Error('BACKEND_PUBLIC_URL must use HTTP or HTTPS');
+}
 
 export const env = {
-  port: Number(process.env.PORT) || 5000,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  port,
+  nodeEnv,
+  backendPublicUrl,
   database: {
     host: process.env.DATABASE_HOST!,
     port: Number(process.env.DATABASE_PORT),
